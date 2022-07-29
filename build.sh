@@ -5,11 +5,11 @@ mkdir bin
 CFiles=$(find . -type f -name "*.c")
 echo "Files found to be compiled:" $CFiles
 
-echo "Building mk1 initialized"
+echo "Building game initialized"
 assembly="game"
-compilerflags="-g"
-includeflags="-I$VULKAN_SDK/include"
-linkerflags="-Lvulkan -L$VULKAN_SDK/Lib -lX11 -L/usr/X11R6/lib -no-pie"
+compilerflags="-g -fPIC"
+includeflags="-Idev/mk1 -I$VULKAN_SDK/include"
+linkerflags="-g -shared -Lvulkan -L$VULKAN_SDK/Lib -lX11 -L/usr/X11R6/lib -no-pie"
 echo "Compilation is using the Compiler flags: " $compilerflags
 echo "Compilation is using the include flags: " $includeflags
 echo "Compilation is using the linkerflags: " $linkerflags
