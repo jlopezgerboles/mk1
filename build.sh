@@ -1,6 +1,6 @@
 set echo on
 
-mkdir bin
+#mkdir bin
 
 CFiles=$(find . -type f -name "*.c")
 echo "Files found to be compiled:" $CFiles
@@ -16,5 +16,5 @@ echo "Compilation is using the linkerflags: " $linkerflags
 
 echo "Building $assembly..."
 
-echo gcc $CFiles $compilerflags $includeflags $linkerflags -o bin/$assembly
-gcc $CFiles $compilerflags $includeflags $linkerflags -o bin/$assembly
+echo gcc $CFiles $compilerflags $includeflags $linkerflags -o $assembly
+gcc $CFiles $compilerflags $includeflags $linkerflags -o $assembly
