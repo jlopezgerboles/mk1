@@ -38,8 +38,8 @@ int main(void) {
 			RootWindow(display, screen),
 			100,
 			100,
-			RESOLUTION_WIDTH/* *2*/, // Multiplying here by 2 does not increate the size of the pixels. TODO
-			RESOLUTION_HEIGHT/* *2*/, // Multiplying here by 2 does not increate the size of the pixels. TODO
+			RESOLUTION_WIDTH*2, // Multiplying here by 2 does not increate the size of the pixels. TODO
+			RESOLUTION_HEIGHT*2, // Multiplying here by 2 does not increate the size of the pixels. TODO
 			0,
 			CopyFromParent,
 			InputOutput,
@@ -82,13 +82,22 @@ int main(void) {
 	
 	XMapWindow(display, window);
 
+	
 	while (1) {
 		XNextEvent(display, &event);
 		if (event.type == Expose) {
 			XFillRectangle(display, window, gc, 0, 0, 64, 64);
-			XDrawString(display, window, DefaultGC(display, screen), 10, 50, msg, strlen(msg)); // Notice the text pops on top of the square.
-			XDrawLine(display, window, gc, 64, 0, 64, 448);
-			XDrawLine(display, window, gc, 0, 64, 512, 64); // To implement all the lines in the canvas. TODO
+			
+			i16 i;
+			i16 Px[4], Py[4];
+			for (i=0; i <= RESOLUTION_WIDTH; i++) {
+				XDrawLine(display, window, gc, i*64, 0, i*64, RESOLUTION_HEIGHT*2); // Notice the dimensions of the width and height should not be edited here.		
+				XDrawLine(display, window, gc, 0, i*64, RESOLUTION_WIDTH*2, i*64); // Notice the dimensions of the width and height should not be edited here.
+			}
+
+			//XDrawString(display, window, DefaultGC(display, screen), 10, 50, msg, strlen(msg)); // Notice the text pops on top of the square.
+			//XDrawLine(display, window, gc, 64, 0, 64, 448);
+			//XDrawLine(display, window, gc, 0, 64, 512, 64); // To implement all the lines in the canvas. TODO
 		}
 		if (event.type == KeyPress)
 			break;
