@@ -9,10 +9,10 @@ echo "Building game initialized"
 assembly="game"
 compilerflags="-g -fPIC"
 includeflags="-Idev/mk1 -I$VULKAN_SDK/include"
-linkerflags="-g -shared -Lvulkan -L$VULKAN_SDK/Lib -lX11 -L/usr/X11R6/lib -no-pie"
+linkerflags="-g -shared -Lvulkan -L$VULKAN_SDK/Lib -lX11 -L/usr/X11R6/lib -lGLU -lGL -no-pie"
 echo "Compilation is using the Compiler flags: " $compilerflags
-echo "Compilation is using the include flags: " $includeflags
-echo "Compilation is using the linkerflags: " $linkerflags
+echo "Compilation is using the Include  flags: " $includeflags
+echo "Compilation is using the Linker   flags: " $linkerflags
 
 echo "Building $assembly..."
 

@@ -1,8 +1,12 @@
-#include <X11/Xlib.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
+#include <math.h>
+
+#include <X11/Xlib.h>
+#include <GL/gl.h>
+#include <GL/glx.h>
 
 typedef unsigned char u8;
 typedef unsigned short u16;
@@ -19,93 +23,127 @@ typedef char b8;
 
 #define RESOLUTION_WIDTH 512
 #define RESOLUTION_HEIGHT 448
+#define CANVAS_WIDTH RESOLUTION_WIDTH*2
+#define CANVAS_HEIGHT RESOLUTION_HEIGHT*2
 
 int main(void) {
-	Display *display;
-	Window window, root_window;
-	XEvent event;
-	const char *msg = "Hello, World!";
-	int screen;
 	
-	display = XOpenDisplay(NULL);
-	screen = DefaultScreen(display);
+	/////////////////////////////////////
+	/* DECALRE & DEFINE X11 PARAMETERS */
 	
-	//THIS WORKS AND HAS BEEN PROVED
-	XSetWindowAttributes att;
-	att.background_pixel = 0x0000ff;
-	window = XCreateWindow(
-			display,
-			RootWindow(display, screen),
-			100,
-			100,
-			RESOLUTION_WIDTH*2, // Multiplying here by 2 does not increate the size of the pixels. TODO
-			RESOLUTION_HEIGHT*2, // Multiplying here by 2 does not increate the size of the pixels. TODO
-			0,
-			CopyFromParent,
-			InputOutput,
-			CopyFromParent,
-			CWBackPixel,
-			&att
-			);
+	Display *x11_Display = XOpenDisplay(NULL);
+	Drawable x11_Window;
+	Drawable x11_RootWindow;
+	i8 x11_Screen = DefaultScreen(x11_Display);
+	XSetWindowAttributes x11_WindowAttributes;
+	i64 x11_WindowAttributesMask;
+	XVisualInfo *x11_VisualInfo;
+	XEvent x11_Event;
+
+	///////////////////////////////////////
+	/* DECLARE AND DEFINE GLX PARAMETERS */
+
+	GLXContext glx_Context;
+	GLXFBConfig *glx_Framebuffer_config; 
+	GLXWindow glx_Window;
+
+	GLint glx_Framebuffer_attributes[] = {GLX_DRAWABLE_TYPE, GLX_WINDOW_BIT, GLX_RENDER_TYPE, GLX_RGBA_BIT,
+		GLX_DOUBLEBUFFER, True, GLX_RED_SIZE, 1, GLX_GREEN_SIZE, 1, GLX_BLUE_SIZE, 1, None};
+
+	///////////////////////////////
+	/* CREATE THE GAME INTERFACE */
 	
-	GC gc;
+	i32 value;
+	glx_Framebuffer_config = glXChooseFBConfig(x11_Display, DefaultScreen(x11_Display), glx_Framebuffer_attributes, &value);
+	
+	x11_VisualInfo = glXGetVisualFromFBConfig(x11_Display, glx_Framebuffer_config[0]);
+
+	x11_WindowAttributes.border_pixel = 0;
+	x11_WindowAttributes.colormap = XCreateColormap(
+			x11_Display,
+			RootWindow(x11_Display, x11_VisualInfo -> screen),
+			x11_VisualInfo -> visual,
+			AllocNone);
+
+	x11_WindowAttributes.event_mask = StructureNotifyMask;
+	x11_WindowAttributesMask = CWBorderPixel|CWEventMask|CWColormap;
+	
+	x11_Window = XCreateWindow(x11_Display, x11_RootWindow = XRootWindow(x11_Display, x11_Screen), 100, 100, CANVAS_WIDTH, CANVAS_HEIGHT, 0,
+			x11_VisualInfo -> depth, InputOutput, x11_VisualInfo -> visual, x11_WindowAttributesMask, &x11_WindowAttributes);
+	
+	XMapWindow(x11_Display, x11_Window);
+	
+	glx_Context = glXCreateNewContext(x11_Display, glx_Framebuffer_config[0], GLX_RGBA_TYPE, NULL, True);
+	glx_Window = glXCreateWindow(x11_Display, glx_Framebuffer_config[0], x11_Window, NULL);
+	glXMakeContextCurrent(x11_Display, x11_Window, glx_Window, glx_Context); 
+
+	glEnable(GL_DEPTH_TEST);
+	
+	XSelectInput(x11_Display, x11_Window, ExposureMask | KeyPressMask); // I missed to define the input mask.
+	
+	while (1) {
+		XNextEvent(x11_Display, &x11_Event);
+
+		if (x11_Event.type == Expose) {
+
+			XGetWindowAttributes(x11_Display, x11_Window, &x11_WindowAttributes);
+			glViewport(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+			glClearColor(0.0f, 0.0f, 1.0f, 1.0f);
+			glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+			glColor4f(0.0f, 1.0f, 1.0f, 1.0f);
+			
+			glBegin(GL_LINE_LOOP);
+			glVertex3f(0.0f, 0.0f, 1.5f);
+			glVertex3f(0.0f, -1.0f, 0.0f);
+			glVertex3f(-1.0f, -1.0f, 0.0f);
+
+			//glBegin(GL_LINES);
+			//glVertex3f(-1.0f, -1.0f, -1.0f);
+			//glVertex3f(1.0f, 1.0f, 1.0f);
+
+			glEnd();
+
+			glXSwapBuffers(x11_Display, x11_Window);
+		}
+
+		if (x11_Event.type == KeyPress) {
+			XDestroyWindow(x11_Display, x11_Window);
+			XCloseDisplay(x11_Display);
+			break;
+		}
+	}
+}
+
+	////////////////////////
+	////////////////////////
+
+	/////////////////////////////////////////
+	/* FULL CREATION OF WINDOW THROUGH X11 */
+	/*
+	x11_WindowAttributes.background_pixel = 0x0000ff;
+	x11_Window = XCreateWindow(
+			x11_Display, x11_RootWindow = RootWindow(x11_Display, x11_Screen), 100, 100, 512, 448, 0, CopyFromParent, InputOutput,
+			CopyFromParent,	CWBackPixel, &x11_WindowAttributes
+	);
+
 	XGCValues values;
 	values.function = GXcopy;
 	values.foreground = 0x00ffff;
-	values.background = 1;
-	values.line_width = 3;
-	values.line_style = LineSolid;
-	values.cap_style = CapButt;
-	values.join_style = JoinMiter;
-	values.fill_style = FillSolid;
-	values.fill_rule = EvenOddRule;
-	values.arc_mode = ArcPieSlice;
-	values.ts_x_origin = 0;
-	values.ts_y_origin = 0;
-	values.subwindow_mode = ClipByChildren;
-	values.graphics_exposures = True;
-	values.clip_x_origin = 0;
-	values.clip_y_origin = 0;
-	values.clip_mask = None;
-	values.dash_offset = 0;
-	values.dashes = 4;
-	gc = XCreateGC(
-			display,
-			window,
-			GCFunction|GCForeground|GCBackground|GCLineWidth|GCLineStyle|GCCapStyle|GCJoinStyle|GCFillStyle|GCFillRule|
-			GCTileStipXOrigin|GCTileStipYOrigin|GCSubwindowMode|GCGraphicsExposures|GCClipXOrigin|GCClipYOrigin|GCClipMask|
-			GCDashOffset|GCDashList|GCArcMode,
-			&values
-			);
+	GC x11_GraphicContext = XCreateGC(x11_Display, x11_Window, GCFunction|GCForeground, &values);
 
-	XSelectInput(display, window, ExposureMask | KeyPressMask);
-	
-	XMapWindow(display, window);
+	XMapWindow(x11_Display, x11_Window);
 
-	
-	while (1) {
-		XNextEvent(display, &event);
-		if (event.type == Expose) {
-			XFillRectangle(display, window, gc, 0, 0, 64, 64);
-			
-			i16 i;
-			i16 Px[4], Py[4];
-			for (i=0; i <= RESOLUTION_WIDTH; i++) {
-				XDrawLine(display, window, gc, i*64, 0, i*64, RESOLUTION_HEIGHT*2); // Notice the dimensions of the width and height should not be edited here.		
-				XDrawLine(display, window, gc, 0, i*64, RESOLUTION_WIDTH*2, i*64); // Notice the dimensions of the width and height should not be edited here.
-			}
+	GLXContext glx_context; yGLXFBConfig glx_framebuffer_config; 
 
-			//XDrawString(display, window, DefaultGC(display, screen), 10, 50, msg, strlen(msg)); // Notice the text pops on top of the square.
-			//XDrawLine(display, window, gc, 64, 0, 64, 448);
-			//XDrawLine(display, window, gc, 0, 64, 512, 64); // To implement all the lines in the canvas. TODO
-		}
-		if (event.type == KeyPress)
-			break;
-	}
-	XFreeGC(display, gc);
-	XCloseDisplay(display);
-	return 0;
-}
+
+	////////////////////////////////
+	////////////////////////////////
+
+	u8 msg[] = "Hola preciosa.";
+	XEvent x11_Event;	
+
+	*/
+	/* LOOP OF THE SOFTWARE */
 	// THIS WORKS AND HAS BEEN PROVED
 
 
